@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SearchSense</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <!-- 1. Header -->
+    <header class="header">
+      <div class="logo">SearchSense</div>
+      <nav>
+        <a href="#" class="active">Search</a>
+        <a href="#">Performance</a>
+      </nav>
+      <div class="cart">Cart</div>
+    </header>
+
+    <main>
+      <h1>Find Your Next Favorite Product</h1>
+      <p class="subtitle">Search through 100,000+ Amazon products</p>
+
+      <!-- 2. Search bar + autocomplete -->
+      <form class="search-bar">
+        <input type="text" placeholder="Search products..." autocomplete="off" />
+        <button type="submit">Search</button>
+      </form>
+      <ul class="suggestions">
+        <li>wireless headphones</li>
+        <li>wireless headset</li>
+        <li>wireless headband</li>
+      </ul>
+
+      <!-- 3. Algorithm select -->
+      <div class="algorithm">
+        <span>Search Algorithm:</span>
+        <label><input type="radio" name="algorithm" value="trie" checked /> Trie (Prefix Tree)</label>
+        <label><input type="radio" name="algorithm" value="tst" /> Ternary Search Tree</label>
+      </div>
+
+      <!-- 4. Search results -->
+      <section class="results">
+        <div class="results-summary">
+          <span>0 Products Found</span>
+          <span>Search Time: 0 ms</span>
+        </div>
+
+        <div class="product">
+          <div class="product-image">Image</div>
+          <div class="product-info">
+            <div class="product-title">Product Title</div>
+            <div class="product-rating">Rating: 0.0 (0 ratings)</div>
+            <div class="product-price">$0.00</div>
+            <div class="product-category">Category</div>
+          </div>
+          <button type="button">View Details</button>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
