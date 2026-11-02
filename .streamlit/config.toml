@@ -1,6 +1,11 @@
 [theme]
 base = "light"
-primaryColor = "#000000"
+primaryColor = "#c45500"
 backgroundColor = "#ffffff"
 secondaryBackgroundColor = "#ffffff"
 textColor = "#000000"
+linkColor = "#c45500"
+borderColor = "#d5d9d9"
+showWidgetBorder = true
+baseRadius = "large"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap"
