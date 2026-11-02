@@ -1,9 +1,13 @@
+import html
+from pathlib import Path
+
 import streamlit as st
 
 from data.data import load_fashion_products
 
 
-DISPLAY_LIMIT = 20
+DISPLAY_LIMIT = 21
+GRID_COLUMNS = 3
 
 
 @st.cache_data(persist="disk", show_spinner="Loading products...")
@@ -26,38 +30,40 @@ def get_products() -> list[dict]:
     return products
 
 
-def format_price(price) -> str:
-    if price is None:
-        return "Price unavailable"
-    return f"${float(price):.2f}"
-
-
 def format_rating(product: dict) -> str:
-    if product["average_rating"] is None:
-        return "No ratings"
-    return f"Rating: {product['average_rating']} ({product['rating_number'] or 0:,} ratings)"
+    # Always two lines (stars, then count) so cards in a row stay the same height
+    rating = product["average_rating"]
+    if rating is None:
+        return ":gray[☆☆☆☆☆]  \n:small[No ratings yet]"
+
+    filled = int(rating + 0.5)
+    stars = "★" * filled + "☆" * (5 - filled)
+    count = product["rating_number"] or 0
+    noun = "rating" if count == 1 else "ratings"
+    return f":orange[{stars}] {rating}  \n:small[{count:,} {noun}]"
 
 
 def render_product(product: dict) -> None:
-    with st.container(border=True):
-        image_col, info_col, button_col = st.columns([1, 4, 1])
+    with st.container(border=True, key=f"card-{product['parent_asin']}"):
+        if product["image"]:
+            st.html(f'<div class="product-image"><img src="{html.escape(product["image"])}" alt=""></div>')
+        else:
+            st.html('<div class="product-image product-image--empty">No image</div>')
 
-        with image_col:
-            if product["image"]:
-                st.image(product["image"])
-            else:
-                st.text("No image")
+        # st.html instead of st.markdown so "$" or "*" in a title isn't parsed as LaTeX/markdown
+        st.html(f'<div class="product-title">{html.escape(product["title"] or "Untitled")}</div>')
+        st.markdown(format_rating(product))
 
-        with info_col:
-            st.markdown(f"**{product['title']}**")
-            st.text(format_rating(product))
-            st.text(format_price(product["price"]))
-            st.caption(product["main_category"] or "")
+        if product["price"] is None:
+            st.markdown(":gray[No price listed]")
+        else:
+            st.markdown(f"**\\${float(product['price']):.2f}**")
 
-        with button_col:
-            st.button("View Details", key=f"details-{product['parent_asin']}")
+        st.caption(product["main_category"] or "")
+        st.button("View Details", key=f"details-{product['parent_asin']}", width="stretch")
 
 
+st.html(Path("assets/styles.css"))
 products = get_products()
 
 # 1. Heading
@@ -67,9 +73,14 @@ st.caption(f"Search through {len(products):,} Amazon products")
 # 2. Search bar + autocomplete
 query_col, button_col = st.columns([5, 1], vertical_alignment="bottom")
 with query_col:
-    st.text_input("Search", placeholder="Search products...", label_visibility="collapsed")
+    st.text_input(
+        "Search",
+        placeholder="Search products...",
+        label_visibility="collapsed",
+        icon=":material/search:",
+    )
 with button_col:
-    st.button("Search", use_container_width=True)
+    st.button("Search", type="primary", width="stretch")
 suggestions = st.empty()
 
 # 3. Algorithm select
@@ -81,5 +92,8 @@ with st.container(border=True):
     count_col.text(f"Showing {DISPLAY_LIMIT} of {len(products):,} Products")
     time_col.text("Search Time: 0 ms")
 
-    for product in products[:DISPLAY_LIMIT]:
-        render_product(product)
+    for row_start in range(0, DISPLAY_LIMIT, GRID_COLUMNS):
+        row = products[row_start:row_start + GRID_COLUMNS]
+        for column, product in zip(st.columns(GRID_COLUMNS), row):
+            with column:
+                render_product(product)
