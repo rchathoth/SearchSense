@@ -43,7 +43,7 @@ selected = rows[rows["size"] == size].set_index("algorithm")
 for column, (title, field, unit) in zip(st.columns(3), [
     ("Average Search Time", "search_ms", "ms"),
     ("Index Build Time", "build_s", "s"),
-    ("Retained Python Allocations", "memory_mb", "MiB"),
+    ("Memory Usage", "memory_mb", "MB"),
 ]):
     with column:
         with st.container(border=True):
@@ -53,19 +53,35 @@ for column, (title, field, unit) in zip(st.columns(3), [
                     st.caption(algorithm)
                     st.write(f"{selected.loc[algorithm, field]:.3f} {unit}")
 
-for title, field, ylabel in [
-    ("Search Time vs Dataset Size", "search_ms", "Average search time (ms)"),
-    ("Retained Python Allocations vs Dataset Size", "memory_mb", "Retained Python allocations (MiB)"),
-]:
-    st.subheader(title)
-    fig, ax = plt.subplots(figsize=(8, 4))
-    for algorithm in ["Trie", "TST"]:
-        values = rows[rows["algorithm"] == algorithm].sort_values("size")
-        ax.plot(values["size"], values[field], marker="o", label=algorithm)
-    ax.set(xlabel="Dataset size (products)", ylabel=ylabel, xticks=sizes)
-    ax.ticklabel_format(axis="x", style="plain")
-    ax.legend()
-    ax.grid(alpha=0.25)
-    fig.tight_layout()
-    st.pyplot(fig)
-    plt.close(fig)
+CHARTS = [
+    ("Search Time", "search_ms", "Search Time (ms)",
+     "How long one search takes on average, in milliseconds. Each structure runs the same "
+     "200 test searches (whole words, partial words and two-word phrases) at every dataset size. "
+     "Lower is faster."),
+    ("Memory Usage", "memory_mb", "Memory Usage (MB)",
+     "How much memory the structure takes up after every product title has been added to it, "
+     "in megabytes. Lower means it uses less memory."),
+]
+LINE_COLORS = {"Trie": "#1f77b4", "TST": "#d62728"}
+
+size_labels = []
+for value in sizes:
+    size_labels.append(f"{value // 1000}K")
+
+for column, (title, field, ylabel, explanation) in zip(st.columns(2), CHARTS):
+    with column:
+        st.subheader(title, anchor=False)
+        fig, ax = plt.subplots(figsize=(5, 3.5))
+        for algorithm in ["Trie", "TST"]:
+            values = rows[rows["algorithm"] == algorithm].sort_values("size")
+            ax.plot(values["size"], values[field], marker="o", label=algorithm,
+                    color=LINE_COLORS[algorithm])
+        ax.set(xlabel="Dataset Size (products)", ylabel=ylabel)
+        ax.set_xticks(sizes, size_labels)
+        ax.set_ylim(bottom=0)
+        ax.legend()
+        ax.grid(alpha=0.25)
+        fig.tight_layout()
+        st.pyplot(fig)
+        plt.close(fig)
+        st.caption(explanation)
