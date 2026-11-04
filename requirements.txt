@@ -2,3 +2,4 @@ certifi
 streamlit
 matplotlib
 pandas
+streamlit-searchbox
