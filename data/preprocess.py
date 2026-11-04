@@ -6,6 +6,9 @@ def get_words(title: str) -> list:
     for char in title.lower():
         if char.isalnum():
             cleaned += char
+        elif char == "'":
+            # Drop apostrophes so "men's" becomes "mens" instead of "men" and "s".
+            continue
         else:
             cleaned += " "
 
