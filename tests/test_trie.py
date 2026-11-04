@@ -30,6 +30,15 @@ def test_product_ids():
     assert trie._find_node("dress").product_ids == [5, 7]
 
 
+def test_get_product_ids():
+    trie = make_trie()
+    assert trie.get_product_ids("wireless") == [0, 1, 2]
+    assert trie.get_product_ids("wire") == [0]
+    assert trie.get_product_ids("wir") == []
+    assert trie.get_product_ids("hat") == []
+    assert trie.get_product_ids("") == []
+
+
 def test_prefix_search():
     trie = make_trie()
     assert sorted(trie.prefix_search("wire")) == [0, 1, 2]
@@ -76,6 +85,7 @@ def test_trie_matches_tst():
 if __name__ == "__main__":
     test_search()
     test_product_ids()
+    test_get_product_ids()
     test_prefix_search()
     test_autocomplete()
     test_delete()
