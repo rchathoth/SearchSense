@@ -113,7 +113,7 @@ with query_col:
         placeholder="Search products...",
         key="query",
         default_use_searchterm=True,
-        edit_after_submit="current",
+        edit_after_submit="option",
         style_overrides=SEARCHBOX_STYLE,
     )
 with button_col:
