@@ -1,9 +1,12 @@
 import html
+import time
 from pathlib import Path
 
 import streamlit as st
 
 from data.data import load_fashion_products
+from data.preprocess import get_words
+from search_engine import build_tst, search_tst
 
 
 DISPLAY_LIMIT = 21
@@ -28,6 +31,11 @@ def get_products() -> list[dict]:
             "image": image,
         })
     return products
+
+
+@st.cache_resource(show_spinner="Building TST index...")
+def get_tst():
+    return build_tst(get_products())
 
 
 def format_rating(product: dict) -> str:
@@ -73,7 +81,7 @@ st.caption(f"Search through {len(products):,} Amazon products")
 # 2. Search bar + autocomplete
 query_col, button_col = st.columns([5, 1], vertical_alignment="bottom")
 with query_col:
-    st.text_input(
+    query = st.text_input(
         "Search",
         placeholder="Search products...",
         label_visibility="collapsed",
@@ -84,16 +92,47 @@ with button_col:
 suggestions = st.empty()
 
 # 3. Algorithm select
-st.radio("Search Algorithm", ["Trie (Prefix Tree)", "Ternary Search Tree"], horizontal=True)
+algorithm = st.radio("Search Algorithm", ["Trie (Prefix Tree)", "Ternary Search Tree"], horizontal=True)
 
 # 4. Search results
+if query.strip() == "":
+    results = products
+    count_text = f"Showing {DISPLAY_LIMIT} of {len(products):,} Products"
+    time_text = "Search Time: 0 ms"
+elif algorithm == "Ternary Search Tree":
+    tst = get_tst()
+
+    start = time.perf_counter()
+    result_ids = search_tst(tst, query)
+    search_ms = (time.perf_counter() - start) * 1000
+
+    results = []
+    for product_id in result_ids:
+        results.append(products[product_id])
+    count_text = f"{len(results):,} Products Found"
+    time_text = f"Search Time: {search_ms:.2f} ms"
+
+    words = get_words(query)
+    if len(words) > 0:
+        suggestions_list = tst.autocomplete(words[-1], 5)
+        if len(suggestions_list) > 0:
+            suggestions.caption("Suggestions: " + ", ".join(suggestions_list))
+else:
+    results = []
+    count_text = "Trie search isn't hooked up yet"
+    time_text = "Search Time: 0 ms"
+
 with st.container(border=True):
     count_col, time_col = st.columns(2)
-    count_col.text(f"Showing {DISPLAY_LIMIT} of {len(products):,} Products")
-    time_col.text("Search Time: 0 ms")
+    count_col.text(count_text)
+    time_col.text(time_text)
 
-    for row_start in range(0, DISPLAY_LIMIT, GRID_COLUMNS):
-        row = products[row_start:row_start + GRID_COLUMNS]
+    if query.strip() != "" and len(results) == 0 and algorithm == "Ternary Search Tree":
+        st.text("No products found")
+
+    shown = results[:DISPLAY_LIMIT]
+    for row_start in range(0, len(shown), GRID_COLUMNS):
+        row = shown[row_start:row_start + GRID_COLUMNS]
         for column, product in zip(st.columns(GRID_COLUMNS), row):
             with column:
                 render_product(product)

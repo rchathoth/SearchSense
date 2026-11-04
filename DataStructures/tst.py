@@ -6,6 +6,7 @@ class TSTNode:
         self.middle = None
         self.right = None
         self.is_end_of_word = False
+        self.product_ids = []
 
 
 class TST:
@@ -14,7 +15,7 @@ class TST:
         self.root = None
         self._contains_empty_string = False
 
-    def insert(self, word: str) -> None:
+    def insert(self, word: str, product_id: int) -> None:
         """Add *word* to the trie."""
         if word == "":
             self._contains_empty_string = True
@@ -33,6 +34,8 @@ class TST:
                 node.middle = insert_at(node.middle, index + 1)
             else:
                 node.is_end_of_word = True
+                if len(node.product_ids) == 0 or node.product_ids[-1] != product_id:
+                    node.product_ids.append(product_id)
             return node
 
         self.root = insert_at(self.root, 0)
@@ -68,6 +71,56 @@ class TST:
         node = self._find_node(prefix)
         return node is not None and (node.is_end_of_word or node.middle is not None)
 
+    def _collect_words(self, node, prefix: str, results: list) -> None:
+        if node is None:
+            return
+
+        self._collect_words(node.left, prefix, results)
+
+        word = prefix + node.char
+        if node.is_end_of_word:
+            results.append((word, node.product_ids))
+        self._collect_words(node.middle, word, results)
+
+        self._collect_words(node.right, prefix, results)
+
+    def _words_with_prefix(self, prefix: str) -> list:
+        if prefix == "":
+            return []
+
+        node = self._find_node(prefix)
+        if node is None:
+            return []
+
+        words = []
+        if node.is_end_of_word:
+            words.append((prefix, node.product_ids))
+        self._collect_words(node.middle, prefix, words)
+        return words
+
+    def prefix_search(self, prefix: str) -> list:
+        words = self._words_with_prefix(prefix)
+
+        # One product can have more than one word with this prefix, so skip repeats.
+        seen = set()
+        product_ids = []
+        for word, ids in words:
+            for product_id in ids:
+                if product_id not in seen:
+                    seen.add(product_id)
+                    product_ids.append(product_id)
+        return product_ids
+
+    def autocomplete(self, prefix: str, k: int) -> list:
+        words = self._words_with_prefix(prefix)
+
+        words.sort(key=lambda pair: len(pair[1]), reverse=True)
+
+        suggestions = []
+        for word, ids in words[:k]:
+            suggestions.append(word)
+        return suggestions
+
     def delete(self, word: str) -> None:
         if word == "":
             self._contains_empty_string = False
@@ -89,6 +142,7 @@ class TST:
                 node.middle = remove(node.middle, index + 1)
             else:
                 node.is_end_of_word = False
+                node.product_ids = []
 
             # A node can only be discarded when it has no role in any path.
             if not node.is_end_of_word and is_leaf(node):
