@@ -24,7 +24,7 @@ def get_benchmarks(source_hash, dataset_hash, _products):
     return pd.DataFrame(run_benchmarks(_products))
 
 
-st.title("Algorithm Performance Comparison")
+st.title("Algorithm Performance Comparison", anchor=False)
 products = get_products()
 sizes = supported_sizes(products)
 st.caption(f"Comparing {len(products):,} product titles. Results are medians of three runs; queries mix words, prefixes, and multiword titles.")

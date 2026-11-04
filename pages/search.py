@@ -21,26 +21,31 @@ SEARCHBOX_STYLE = {
     "searchbox": {
         "optionEmpty": "hidden",
         "control": {
+            # The search box runs in its own iframe, so it has to load the theme font itself.
+            "@font-face": {
+                "fontFamily": "Carlito",
+                "src": "url(https://fonts.gstatic.com/s/carlito/v4/3Jn9SDPw3m-pk039DDeBTFcHXuA.woff2) format('woff2')",
+            },
+            "fontFamily": "Carlito, sans-serif",
             "minHeight": "40px",
             "backgroundColor": "#ffffff",
             "border": "1px solid #d5d9d9",
-            "borderRadius": "12px",
+            "borderRadius": 0,
             "boxShadow": "none",
             "&:hover": {"border": "1px solid #d5d9d9"},
             "&:focus-within": {"border": "1px solid #c45500"},
-            "&:has(+ div [id*='-option-'])": {"borderBottomLeftRadius": 0, "borderBottomRightRadius": 0},
             "& + div:not(:has([id*='-option-']))": {"display": "none"},
             "& + div": {
                 "marginTop": 0,
                 "border": "1px solid #c45500",
                 "borderTop": "none",
-                "borderRadius": "0 0 12px 12px",
+                "borderRadius": 0,
                 "boxShadow": "none",
                 "overflow": "hidden",
             },
         },
         "menuList": {"paddingTop": 0, "paddingBottom": 0},
-        "option": {"&:hover": {"backgroundColor": "#f5f5f5"}},
+        "option": {"fontFamily": "Carlito, sans-serif", "&:hover": {"backgroundColor": "#f5f5f5"}},
     },
 }
 
@@ -89,20 +94,20 @@ def render_product(product: dict) -> None:
         st.html(f'<div class="product-title">{html.escape(product["title"] or "Untitled")}</div>')
         st.markdown(format_rating(product))
 
+        # Most products have no price in the dataset, so leave a blank line to keep cards the same height
         if product["price"] is None:
-            st.markdown(":gray[No price listed]")
+            st.markdown("&nbsp;")
         else:
             st.markdown(f"**\\${float(product['price']):.2f}**")
 
         st.caption(product["main_category"] or "")
-        st.button("View Details", key=f"details-{product['parent_asin']}", width="stretch")
 
 
 st.html(Path("assets/styles.css"))
 products = get_products()
 
 # 1. Heading
-st.title("Find Your Next Favorite Product")
+st.title("Find Your Next Favorite Product", anchor=False)
 st.caption(f"Search through {len(products):,} Amazon products")
 
 # 2. Search bar + autocomplete
@@ -147,6 +152,9 @@ with st.container(border=True):
     count_col, time_col = st.columns(2)
     count_col.text(count_text)
     time_col.text(time_text)
+
+    if query.strip() != "":
+        st.text("Searched with: " + st.session_state["algorithm"])
 
     if query.strip() != "" and len(results) == 0:
         st.text("No products found")

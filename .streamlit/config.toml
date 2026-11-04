@@ -7,5 +7,5 @@ textColor = "#000000"
 linkColor = "#c45500"
 borderColor = "#d5d9d9"
 showWidgetBorder = true
-baseRadius = "large"
-font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap"
+baseRadius = "none"
+font = "Carlito:https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap"
