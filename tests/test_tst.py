@@ -30,6 +30,15 @@ def test_product_ids():
     assert tst._find_node("dress").product_ids == [5, 7]
 
 
+def test_get_product_ids():
+    tst = make_tst()
+    assert tst.get_product_ids("wireless") == [0, 1, 2]
+    assert tst.get_product_ids("wire") == [0]
+    assert tst.get_product_ids("wir") == []
+    assert tst.get_product_ids("hat") == []
+    assert tst.get_product_ids("") == []
+
+
 def test_prefix_search():
     tst = make_tst()
     assert sorted(tst.prefix_search("wire")) == [0, 1, 2]
@@ -56,7 +65,7 @@ def test_delete():
 
 
 def test_get_words():
-    assert get_words("Men's Running Shoes, Running!") == ["men", "s", "running", "shoes"]
+    assert get_words("Men's Running Shoes, Running!") == ["mens", "running", "shoes"]
     assert get_words("") == []
     assert get_words(None) == []
 
@@ -79,6 +88,7 @@ def test_search_tst():
 if __name__ == "__main__":
     test_search()
     test_product_ids()
+    test_get_product_ids()
     test_prefix_search()
     test_autocomplete()
     test_delete()

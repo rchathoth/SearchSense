@@ -77,6 +77,15 @@ class Trie:
         self._collect_words(node, prefix, words)
         return words
 
+    def get_product_ids(self, word: str) -> list:
+        if word == "":
+            return []
+
+        node = self._find_node(word)
+        if node is None or not node.is_end_of_word:
+            return []
+        return node.product_ids
+
     def prefix_search(self, prefix: str) -> list:
         words = self._words_with_prefix(prefix)
 

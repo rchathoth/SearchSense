@@ -3,16 +3,46 @@ import time
 from pathlib import Path
 
 import streamlit as st
+from streamlit_searchbox import st_searchbox
 
 from data.data import load_fashion_products
-from data.preprocess import get_words
 from DataStructures.trie import Trie
 from DataStructures.tst import TST
-from search_engine import build_index, search_index
+from search_engine import build_index, get_suggestions, search_index
 
 
 DISPLAY_LIMIT = 21
 GRID_COLUMNS = 3
+
+# The suggestion menu is the div right after the box, so "& + div" styles it.
+# This makes the box and the menu look like one piece with no gap in between.
+SEARCHBOX_STYLE = {
+    "dropdown": {"width": 0, "height": 0},
+    "searchbox": {
+        "optionEmpty": "hidden",
+        "control": {
+            "minHeight": "40px",
+            "backgroundColor": "#ffffff",
+            "border": "1px solid #d5d9d9",
+            "borderRadius": "12px",
+            "boxShadow": "none",
+            "&:hover": {"border": "1px solid #d5d9d9"},
+            "&:focus-within": {"border": "1px solid #c45500"},
+            "&:has(+ div [id*='-option-'])": {"borderBottomLeftRadius": 0, "borderBottomRightRadius": 0},
+            "& + div:not(:has([id*='-option-']))": {"display": "none"},
+            "& + div": {
+                "marginTop": 0,
+                "border": "1px solid #c45500",
+                "borderTop": "none",
+                "borderRadius": "0 0 12px 12px",
+                "boxShadow": "none",
+                "overflow": "hidden",
+            },
+        },
+        "menuList": {"paddingTop": 0, "paddingBottom": 0},
+        "option": {"&:hover": {"backgroundColor": "#f5f5f5"}},
+    },
+}
 
 
 @st.cache_data(persist="disk", show_spinner="Loading products...")
@@ -43,6 +73,16 @@ def get_tst():
 @st.cache_resource(show_spinner="Building Trie index...")
 def get_trie():
     return build_index(Trie(), get_products())
+
+
+def get_selected_index():
+    if st.session_state.get("algorithm") == "Ternary Search Tree":
+        return get_tst()
+    return get_trie()
+
+
+def suggest(text: str) -> list:
+    return get_suggestions(get_selected_index(), text, 5)
 
 
 def format_rating(product: dict) -> str:
@@ -86,31 +126,32 @@ st.title("Find Your Next Favorite Product")
 st.caption(f"Search through {len(products):,} Amazon products")
 
 # 2. Search bar + autocomplete
-query_col, button_col = st.columns([5, 1], vertical_alignment="bottom")
+query_col, button_col = st.columns([5, 1], vertical_alignment="top")
 with query_col:
-    query = st.text_input(
-        "Search",
+    query = st_searchbox(
+        suggest,
         placeholder="Search products...",
-        label_visibility="collapsed",
-        icon=":material/search:",
+        key="query",
+        default_use_searchterm=True,
+        edit_after_submit="current",
+        style_overrides=SEARCHBOX_STYLE,
     )
 with button_col:
     st.button("Search", type="primary", width="stretch")
-suggestions = st.empty()
 
 # 3. Algorithm select
-algorithm = st.radio("Search Algorithm", ["Trie (Prefix Tree)", "Ternary Search Tree"], horizontal=True)
+st.radio("Search Algorithm", ["Trie (Prefix Tree)", "Ternary Search Tree"], horizontal=True, key="algorithm")
 
 # 4. Search results
+if query is None:
+    query = ""
+
 if query.strip() == "":
     results = products
     count_text = f"Showing {DISPLAY_LIMIT} of {len(products):,} Products"
     time_text = "Search Time: 0 ms"
 else:
-    if algorithm == "Ternary Search Tree":
-        index = get_tst()
-    else:
-        index = get_trie()
+    index = get_selected_index()
 
     start = time.perf_counter()
     result_ids = search_index(index, query)
@@ -121,12 +162,6 @@ else:
         results.append(products[product_id])
     count_text = f"{len(results):,} Products Found"
     time_text = f"Search Time: {search_ms:.2f} ms"
-
-    words = get_words(query)
-    if len(words) > 0:
-        suggestions_list = index.autocomplete(words[-1], 5)
-        if len(suggestions_list) > 0:
-            suggestions.caption("Suggestions: " + ", ".join(suggestions_list))
 
 with st.container(border=True):
     count_col, time_col = st.columns(2)
