@@ -1,5 +1,5 @@
 certifi
 streamlit
+streamlit-searchbox
 matplotlib
 pandas
-streamlit-searchbox
