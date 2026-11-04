@@ -6,7 +6,9 @@ import streamlit as st
 
 from data.data import load_fashion_products
 from data.preprocess import get_words
-from search_engine import build_tst, search_tst
+from DataStructures.trie import Trie
+from DataStructures.tst import TST
+from search_engine import build_index, search_index
 
 
 DISPLAY_LIMIT = 21
@@ -35,7 +37,12 @@ def get_products() -> list[dict]:
 
 @st.cache_resource(show_spinner="Building TST index...")
 def get_tst():
-    return build_tst(get_products())
+    return build_index(TST(), get_products())
+
+
+@st.cache_resource(show_spinner="Building Trie index...")
+def get_trie():
+    return build_index(Trie(), get_products())
 
 
 def format_rating(product: dict) -> str:
@@ -99,11 +106,14 @@ if query.strip() == "":
     results = products
     count_text = f"Showing {DISPLAY_LIMIT} of {len(products):,} Products"
     time_text = "Search Time: 0 ms"
-elif algorithm == "Ternary Search Tree":
-    tst = get_tst()
+else:
+    if algorithm == "Ternary Search Tree":
+        index = get_tst()
+    else:
+        index = get_trie()
 
     start = time.perf_counter()
-    result_ids = search_tst(tst, query)
+    result_ids = search_index(index, query)
     search_ms = (time.perf_counter() - start) * 1000
 
     results = []
@@ -114,20 +124,16 @@ elif algorithm == "Ternary Search Tree":
 
     words = get_words(query)
     if len(words) > 0:
-        suggestions_list = tst.autocomplete(words[-1], 5)
+        suggestions_list = index.autocomplete(words[-1], 5)
         if len(suggestions_list) > 0:
             suggestions.caption("Suggestions: " + ", ".join(suggestions_list))
-else:
-    results = []
-    count_text = "Trie search isn't hooked up yet"
-    time_text = "Search Time: 0 ms"
 
 with st.container(border=True):
     count_col, time_col = st.columns(2)
     count_col.text(count_text)
     time_col.text(time_text)
 
-    if query.strip() != "" and len(results) == 0 and algorithm == "Ternary Search Tree":
+    if query.strip() != "" and len(results) == 0:
         st.text("No products found")
 
     shown = results[:DISPLAY_LIMIT]

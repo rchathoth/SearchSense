@@ -1,6 +1,6 @@
 from DataStructures.tst import TST
 from data.preprocess import get_words
-from search_engine import build_tst, search_tst
+from search_engine import build_index, search_index
 
 
 def make_tst():
@@ -68,12 +68,12 @@ def test_search_tst():
         {"title": "Summer Dress"},
         {"title": None},
     ]
-    tst = build_tst(products)
-    assert search_tst(tst, "wireless") == [0, 1]
-    assert search_tst(tst, "wire head") == [0]
-    assert search_tst(tst, "DRESS!") == [2]
-    assert search_tst(tst, "hat") == []
-    assert search_tst(tst, "   ") == []
+    tst = build_index(TST(), products)
+    assert search_index(tst, "wireless") == [0, 1]
+    assert search_index(tst, "wire head") == [0]
+    assert search_index(tst, "DRESS!") == [2]
+    assert search_index(tst, "hat") == []
+    assert search_index(tst, "   ") == []
 
 
 if __name__ == "__main__":
