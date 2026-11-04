@@ -3,6 +3,7 @@ import ssl
 import urllib.request
 
 import certifi
+import streamlit as st
 
 
 DATASET_URL = (
@@ -36,4 +37,24 @@ def load_fashion_products(limit: int = PRODUCT_LIMIT) -> list[dict]:
             if len(products) == limit:
                 break
 
+    return products
+
+
+@st.cache_data(persist="disk", show_spinner="Loading products...")
+def get_products() -> list[dict]:
+    """Load the dataset once and keep only the fields the UI needs."""
+    products = []
+    for product in load_fashion_products():
+        images = product.get("images") or []
+        image = next((img.get("large") for img in images if img.get("large")), None)
+
+        products.append({
+            "parent_asin": product.get("parent_asin") or product.get("asin"),
+            "title": product.get("title"),
+            "main_category": product.get("main_category"),
+            "price": product.get("price"),
+            "average_rating": product.get("average_rating"),
+            "rating_number": product.get("rating_number"),
+            "image": image,
+        })
     return products

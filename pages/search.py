@@ -5,7 +5,7 @@ from pathlib import Path
 import streamlit as st
 from streamlit_searchbox import st_searchbox
 
-from data.data import load_fashion_products
+from data.data import get_products
 from DataStructures.trie import Trie
 from DataStructures.tst import TST
 from search_engine import build_index, get_suggestions, search_index
@@ -43,26 +43,6 @@ SEARCHBOX_STYLE = {
         "option": {"&:hover": {"backgroundColor": "#f5f5f5"}},
     },
 }
-
-
-@st.cache_data(persist="disk", show_spinner="Loading products...")
-def get_products() -> list[dict]:
-    """Load the dataset once and keep only the fields the UI needs."""
-    products = []
-    for product in load_fashion_products():
-        images = product.get("images") or []
-        image = next((img.get("large") for img in images if img.get("large")), None)
-
-        products.append({
-            "parent_asin": product.get("parent_asin") or product.get("asin"),
-            "title": product.get("title"),
-            "main_category": product.get("main_category"),
-            "price": product.get("price"),
-            "average_rating": product.get("average_rating"),
-            "rating_number": product.get("rating_number"),
-            "image": image,
-        })
-    return products
 
 
 @st.cache_resource(show_spinner="Building TST index...")
