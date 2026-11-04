@@ -1,30 +1,62 @@
+import hashlib
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import pandas as pd
 import streamlit as st
 
-from data.data import PRODUCT_LIMIT
+from benchmark import SIZES, run_benchmarks
+from data.data import PRODUCT_LIMIT, get_products
 
 
-ALGORITHMS = ["Trie (Prefix Tree)", "Ternary Search Tree"]
-METRICS = ["Build time", "Avg. search time", "Memory used", "Node count"]
+def benchmark_source_hash():
+    root = Path(__file__).resolve().parents[1]
+    digest = hashlib.sha256()
+    for filename in ["DataStructures/trie.py", "DataStructures/tst.py",
+                     "search_engine.py", "data/preprocess.py", "benchmark.py"]:
+        digest.update((root / filename).read_bytes())
+    return digest.hexdigest()
 
-# Benchmark numbers per algorithm, keyed by metric name; anything missing shows as "—"
-results = {name: {} for name in ALGORITHMS}
 
-
-def render_algorithm_card(name: str, stats: dict) -> None:
-    with st.container(border=True):
-        st.subheader(name)
-        for row_start in range(0, len(METRICS), 2):
-            for column, metric in zip(st.columns(2), METRICS[row_start:row_start + 2]):
-                column.metric(metric, stats.get(metric, "—"))
+@st.cache_data(persist="disk", show_spinner="Running benchmarks...")
+def get_benchmarks(source_hash):
+    return pd.DataFrame(run_benchmarks(get_products()))
 
 
 st.title("Algorithm Performance Comparison")
 st.caption(f"How the two prefix structures compare on the same {PRODUCT_LIMIT:,} product titles")
 
-for column, name in zip(st.columns(2), ALGORITHMS):
-    with column:
-        render_algorithm_card(name, results[name])
+size = st.selectbox("Dataset Size", SIZES, index=2,
+                    format_func=lambda value: f"{value:,} Products")
+rows = get_benchmarks(benchmark_source_hash())
+selected = rows[rows["size"] == size].set_index("algorithm")
 
-st.subheader("Search time by prefix length")
-with st.container(border=True, height=300, vertical_alignment="center"):
-    st.caption("Chart appears here once the benchmarks run", text_alignment="center")
+for column, (title, field, unit) in zip(st.columns(3), [
+    ("Average Search Time", "search_ms", "ms"),
+    ("Index Build Time", "build_s", "s"),
+    ("Memory Usage", "memory_mb", "MB"),
+]):
+    with column:
+        with st.container(border=True):
+            st.markdown(f"**{title}**")
+            for metric_column, algorithm in zip(st.columns(2), ["Trie", "TST"]):
+                with metric_column:
+                    st.caption(algorithm)
+                    st.write(f"{selected.loc[algorithm, field]:.3f} {unit}")
+
+for title, field, ylabel in [
+    ("Search Time vs Dataset Size", "search_ms", "Average search time (ms)"),
+    ("Memory Usage vs Dataset Size", "memory_mb", "Memory usage (MB)"),
+]:
+    st.subheader(title)
+    fig, ax = plt.subplots(figsize=(8, 4))
+    for algorithm in ["Trie", "TST"]:
+        values = rows[rows["algorithm"] == algorithm].sort_values("size")
+        ax.plot(values["size"], values[field], marker="o", label=algorithm)
+    ax.set(xlabel="Dataset size (products)", ylabel=ylabel, xticks=SIZES)
+    ax.ticklabel_format(axis="x", style="plain")
+    ax.legend()
+    ax.grid(alpha=0.25)
+    fig.tight_layout()
+    st.pyplot(fig)
+    plt.close(fig)
